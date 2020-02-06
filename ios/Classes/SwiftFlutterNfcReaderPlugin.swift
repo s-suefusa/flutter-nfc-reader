@@ -95,6 +95,8 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
     }
 
     public func tagReaderSession(_ session: NFCTagReaderSession, didDetect tags: [NFCTag]) {
+        print("tagReaderSession(_:didDetect:)")
+
         var id = ""
         switch tags.first! {
         case let .iso7816(iso7816Tag):
