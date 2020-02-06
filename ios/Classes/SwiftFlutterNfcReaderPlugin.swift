@@ -42,7 +42,7 @@ public class SwiftFlutterNfcReaderPlugin: NSObject, FlutterPlugin {
             alertController.addAction(UIAlertAction(title: "OK", style: .default, handler: nil))
             UIApplication.shared.keyWindow?.rootViewController?.present(alertController, animated: true)
         case "NfcAvailable":
-            var nfcAvailable = NFCNDEFReaderSession.readingAvailable
+            var nfcAvailable = NFCTagReaderSession.readingAvailable
             result(nfcAvailable ? "available" : "not_supported")
         default:
             result("iOS " + UIDevice.current.systemVersion)
@@ -56,7 +56,7 @@ extension SwiftFlutterNfcReaderPlugin {
     func activateNFC(_ instruction: String?) {
         print("activate")
         
-        nfcSession = NFCTagReaderSession(delegate: self, queue: DispatchQueue(label: "queueName", attributes: .concurrent), pollingOption: [.iso14443, .iso15693, .iso18092])
+        nfcSession = NFCTagReaderSession(pollingOption: [.iso14443, .iso15693, .iso18092], delegate: self, queue: DispatchQueue(label: "queueName", attributes: .concurrent))
         
         // then setup a new session
         if let instruction = instruction {
@@ -99,7 +99,7 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
         switch tags.first! {
         case let .iso7816(iso7816Tag):
             // iso7816Tag: NFCISO7816Tag
-            id = so7816Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
+            id = iso7816Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
             break
         case let .feliCa(feliCaTag):
             // feliCaTag: NFCFeliCaTag
@@ -107,7 +107,7 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
             break
         case let .iso15693(iso15693Tag):
             // iso15693Tag: NFCISO15693Tag
-            id = feliCaTag.identifier.map { String(format: "%.2hhx", $0) }.joined()
+            id = iso15693Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
             break
         case let .miFare(miFareTag):
             // miFareTag: NFCMiFareTag
@@ -129,71 +129,69 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
         disableNFC()
     }
 
-
-
-    public func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
-        print(messages)
-        guard let message = messages.first else { return }
-        guard let payload = message.records.first else { return }
+    // public func readerSession(_ session: NFCNDEFReaderSession, didDetectNDEFs messages: [NFCNDEFMessage]) {
+    //     print(messages)
+    //     guard let message = messages.first else { return }
+    //     guard let payload = message.records.first else { return }
         
-        print(payload.identifier as NSData)
+    //     print(payload.identifier as NSData)
         
-        // Start Package
+    //     // Start Package
         
-        let parsedPayload = VYNFCNDEFPayloadParser.parse(payload)
-        var text = ""
-        var urlString = ""
+    //     let parsedPayload = VYNFCNDEFPayloadParser.parse(payload)
+    //     var text = ""
+    //     var urlString = ""
         
-        if let parsedPayload = parsedPayload as? VYNFCNDEFTextPayload {
-            // text = "[Text payload]\n"
-            text = String(format: "%@%@", text, parsedPayload.text)
-        } else if let parsedPayload = parsedPayload as? VYNFCNDEFURIPayload {
-            // text = "[URI payload]\n"
-            text = String(format: "%@%@", text, parsedPayload.uriString)
-            urlString = parsedPayload.uriString
-        } else if let parsedPayload = parsedPayload as? VYNFCNDEFTextXVCardPayload {
-            // text = "[TextXVCard payload]\n"
-            text = String(format: "%@%@", text, parsedPayload.text)
-        } else if let sp = parsedPayload as? VYNFCNDEFSmartPosterPayload {
-            // text = "[SmartPoster payload]\n"
-            for textPayload in sp.payloadTexts {
-                if let textPayload = textPayload as? VYNFCNDEFTextPayload {
-                    text = String(format: "%@%@\n", text, textPayload.text)
-                }
-            }
-            text = String(format: "%@%@", text, sp.payloadURI.uriString)
-            urlString = sp.payloadURI.uriString
-        } else if let wifi = parsedPayload as? VYNFCNDEFWifiSimpleConfigPayload {
-            for case let credential as VYNFCNDEFWifiSimpleConfigCredential in wifi.credentials {
-                text = String(format: "%@SSID: %@\nPassword: %@\nMac Address: %@\nAuth Type: %@\nEncrypt Type: %@",
-                              text, credential.ssid, credential.networkKey, credential.macAddress,
-                              VYNFCNDEFWifiSimpleConfigCredential.authTypeString(credential.authType),
-                              VYNFCNDEFWifiSimpleConfigCredential.encryptTypeString(credential.encryptType)
-                )
-            }
-            if let version2 = wifi.version2 {
-                text = String(format: "%@\nVersion2: %@", text, version2.version)
-            }
-        } else {
-            text = "";
-        }
-        print(text)
+    //     if let parsedPayload = parsedPayload as? VYNFCNDEFTextPayload {
+    //         // text = "[Text payload]\n"
+    //         text = String(format: "%@%@", text, parsedPayload.text)
+    //     } else if let parsedPayload = parsedPayload as? VYNFCNDEFURIPayload {
+    //         // text = "[URI payload]\n"
+    //         text = String(format: "%@%@", text, parsedPayload.uriString)
+    //         urlString = parsedPayload.uriString
+    //     } else if let parsedPayload = parsedPayload as? VYNFCNDEFTextXVCardPayload {
+    //         // text = "[TextXVCard payload]\n"
+    //         text = String(format: "%@%@", text, parsedPayload.text)
+    //     } else if let sp = parsedPayload as? VYNFCNDEFSmartPosterPayload {
+    //         // text = "[SmartPoster payload]\n"
+    //         for textPayload in sp.payloadTexts {
+    //             if let textPayload = textPayload as? VYNFCNDEFTextPayload {
+    //                 text = String(format: "%@%@\n", text, textPayload.text)
+    //             }
+    //         }
+    //         text = String(format: "%@%@", text, sp.payloadURI.uriString)
+    //         urlString = sp.payloadURI.uriString
+    //     } else if let wifi = parsedPayload as? VYNFCNDEFWifiSimpleConfigPayload {
+    //         for case let credential as VYNFCNDEFWifiSimpleConfigCredential in wifi.credentials {
+    //             text = String(format: "%@SSID: %@\nPassword: %@\nMac Address: %@\nAuth Type: %@\nEncrypt Type: %@",
+    //                           text, credential.ssid, credential.networkKey, credential.macAddress,
+    //                           VYNFCNDEFWifiSimpleConfigCredential.authTypeString(credential.authType),
+    //                           VYNFCNDEFWifiSimpleConfigCredential.encryptTypeString(credential.encryptType)
+    //             )
+    //         }
+    //         if let version2 = wifi.version2 {
+    //             text = String(format: "%@\nVersion2: %@", text, version2.version)
+    //         }
+    //     } else {
+    //         text = "";
+    //     }
+    //     print(text)
         
-        // end package
+    //     // end package
         
-        let data = [kId: "", kContent: text, kError: "", kStatus: "reading"]
-        sendNfcEvent(data: data);
-        readResult?(data)
-        readResult=nil
-        //disableNFC()
-    }
+    //     let data = [kId: "", kContent: text, kError: "", kStatus: "reading"]
+    //     sendNfcEvent(data: data);
+    //     readResult?(data)
+    //     readResult=nil
+    //     //disableNFC()
+    // }
     
-    public func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
-        print(error.localizedDescription)
-        let data = [kId: "", kContent: "", kError: error.localizedDescription, kStatus: "error"]
-        resulter?(data)
-        disableNFC()
-    }
+    // public func readerSession(_ session: NFCNDEFReaderSession, didInvalidateWithError error: Error) {
+    //     print(error.localizedDescription)
+    //     let data = [kId: "", kContent: "", kError: error.localizedDescription, kStatus: "error"]
+    //     resulter?(data)
+    //     disableNFC()
+    // }
     
 }
 
