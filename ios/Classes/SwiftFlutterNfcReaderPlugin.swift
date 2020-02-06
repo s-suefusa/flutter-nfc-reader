@@ -56,7 +56,7 @@ extension SwiftFlutterNfcReaderPlugin {
     func activateNFC(_ instruction: String?) {
         print("activate")
         
-        nfcSession = NFCTagReaderSession(pollingOption: [.iso14443, .iso15693, .iso18092], delegate: self, queue: DispatchQueue(label: "queueName", attributes: .concurrent))
+        nfcSession = NFCTagReaderSession(pollingOption: .iso18092, delegate: self, queue: DispatchQueue(label: "queueName", attributes: .concurrent))
         
         // then setup a new session
         if let instruction = instruction {
@@ -105,7 +105,7 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
                 session.invalidate(errorMessage: "Connection error. Please try again.")
                 return
             }
-            switch tags.first! {
+            switch tag {
             case let .iso7816(iso7816Tag):
                 // iso7816Tag: NFCISO7816Tag
                 id = "0x" + iso7816Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
