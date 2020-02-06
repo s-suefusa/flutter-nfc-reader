@@ -39,11 +39,7 @@ class FlutterNfcReaderPlugin(registrar: Registrar) : MethodCallHandler, EventCha
     private var tag: Tag? = null
     private var eventChannel: EventChannel.EventSink? = null
 
-    private var nfcFlags = NfcAdapter.FLAG_READER_NFC_A or
-            NfcAdapter.FLAG_READER_NFC_B or
-            NfcAdapter.FLAG_READER_NFC_BARCODE or
-            NfcAdapter.FLAG_READER_NFC_F or
-            NfcAdapter.FLAG_READER_NFC_V
+    private var nfcFlags = NfcAdapter.FLAG_READER_NFC_F
 
     companion object {
         @JvmStatic
