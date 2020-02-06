@@ -67,7 +67,6 @@ extension SwiftFlutterNfcReaderPlugin {
         if let nfcSession = nfcSession {
             nfcSession.begin()
         }
-        
     }
     
     func disableNFC() {
@@ -98,30 +97,40 @@ extension SwiftFlutterNfcReaderPlugin : NFCTagReaderSessionDelegate {
         print("tagReaderSession(_:didDetect:)")
 
         var id = ""
-        switch tags.first! {
-        case let .iso7816(iso7816Tag):
-            // iso7816Tag: NFCISO7816Tag
-            id = iso7816Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
-            break
-        case let .feliCa(feliCaTag):
-            // feliCaTag: NFCFeliCaTag
-            id = feliCaTag.currentIDm.map { String(format: "%.2hhx", $0) }.joined()
-            break
-        case let .iso15693(iso15693Tag):
-            // iso15693Tag: NFCISO15693Tag
-            id = iso15693Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
-            break
-        case let .miFare(miFareTag):
-            // miFareTag: NFCMiFareTag
-            id = miFareTag.identifier.map { String(format: "%.2hhx", $0) }.joined()
-            break
-        @unknown default:
-            return
+
+        let tag = tags.first!
+
+        session.connect(to: tag) { (error) in
+            if nil != error {
+                session.invalidate(errorMessage: "Connection error. Please try again.")
+                return
+            }
+            switch tags.first! {
+            case let .iso7816(iso7816Tag):
+                // iso7816Tag: NFCISO7816Tag
+                id = iso7816Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
+                break
+            case let .feliCa(feliCaTag):
+                // feliCaTag: NFCFeliCaTag
+                id = feliCaTag.currentIDm.map { String(format: "%.2hhx", $0) }.joined()
+                break
+            case let .iso15693(iso15693Tag):
+                // iso15693Tag: NFCISO15693Tag
+                id = iso15693Tag.identifier.map { String(format: "%.2hhx", $0) }.joined()
+                break
+            case let .miFare(miFareTag):
+                // miFareTag: NFCMiFareTag
+                id = miFareTag.identifier.map { String(format: "%.2hhx", $0) }.joined()
+                break
+            @unknown default:
+                return
+            }
+            let data = [kId: id, kContent: "", kError: "", kStatus: "reading"]
+            sendNfcEvent(data: data)
+            readResult?(data)
+            readResult=nil
+            disableNFC()
         }
-        let data = [kId: id, kContent: "", kError: "", kStatus: "reading"]
-        sendNfcEvent(data: data);
-        readResult?(data)
-        readResult=nil
     }
 
     public func tagReaderSession(_ session: NFCTagReaderSession, didInvalidateWithError error: Error) {
